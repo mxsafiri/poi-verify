@@ -16,9 +16,12 @@ import type { Project } from '@/types/database';
 
 interface ProjectCardProps {
   project: Project;
+  onView?: () => void;
+  onAction?: (action: 'verify' | 'reject', project: Project) => Promise<void>;
+  isVerifier?: boolean;
 }
 
-const ProjectCard = ({ project }: ProjectCardProps) => {
+const ProjectCard = ({ project, onView, onAction, isVerifier }: ProjectCardProps) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -49,9 +52,11 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
           <Typography variant="h6" component="div" noWrap>
             {project.name}
           </Typography>
-          <IconButton size="small" onClick={handleMenuClick}>
-            <MoreVertIcon />
-          </IconButton>
+          {isVerifier && (
+            <IconButton size="small" onClick={handleMenuClick}>
+              <MoreVertIcon />
+            </IconButton>
+          )}
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
