@@ -22,7 +22,7 @@ import { useVerifier } from '@/lib/hooks/useVerifier';
 import { ProjectCard } from '@/components/ui/project-card';
 import { ProjectDetailsModal } from '@/components/ui/project-details-modal';
 import { sendStatusUpdateEmail } from '@/lib/email';
-import type { Project } from '@/types/database';
+import type { Project, ProjectStatus } from '@/types/database';
 
 export default function VerifierPage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function VerifierPage() {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('today');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [stats, setStats] = useState({
     submitted: 0,
@@ -58,7 +58,7 @@ export default function VerifierPage() {
         if (projectsData) {
           const typedProjects = projectsData.map(project => ({
             ...project,
-            status: project.status as 'Pending' | 'Approved' | 'Rejected',
+            status: project.status as ProjectStatus,
             users: project.users || undefined
           }));
 
@@ -86,7 +86,7 @@ export default function VerifierPage() {
   const handleProjectAction = async (action: 'verify' | 'reject', project: Project) => {
     try {
       const updates = {
-        status: action === 'verify' ? 'Approved' : 'Rejected',
+        status: action === 'verify' ? ('Approved' as const) : ('Rejected' as const),
         nft_minted: action === 'verify',
         funded: action === 'verify',
       };
@@ -149,105 +149,100 @@ export default function VerifierPage() {
               }
             >
               <MenuItem value="today">Today</MenuItem>
-              <MenuItem value="week">Last 7 days</MenuItem>
-              <MenuItem value="all">All time</MenuItem>
+              <MenuItem value="week">This Week</MenuItem>
+              <MenuItem value="month">This Month</MenuItem>
+              <MenuItem value="all">All Time</MenuItem>
             </Select>
           </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
+              displayEmpty
+              startAdornment={
+                <InputAdornment position="start">
+                  <FilterListIcon fontSize="small" />
+                </InputAdornment>
+              }
+            >
+              <MenuItem value="all">All Status</MenuItem>
+              <MenuItem value="Pending">Pending</MenuItem>
+              <MenuItem value="Approved">Approved</MenuItem>
+              <MenuItem value="Rejected">Rejected</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
         </Box>
       </Box>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Projects Submitted
+              <Typography color="textSecondary" gutterBottom>
+                Total Submitted
               </Typography>
-              <Typography variant="h4" fontWeight="600">
-                {stats.submitted}
-              </Typography>
+              <Typography variant="h4">{stats.submitted}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Projects Approved
+              <Typography color="textSecondary" gutterBottom>
+                Total Approved
               </Typography>
-              <Typography variant="h4" fontWeight="600">
-                {stats.approved}
-              </Typography>
+              <Typography variant="h4">{stats.approved}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Total Amount Requested
+              <Typography color="textSecondary" gutterBottom>
+                Total Amount
               </Typography>
-              <Typography variant="h4" fontWeight="600">
-                ${stats.totalAmount.toLocaleString()}
-              </Typography>
+              <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-        <TextField
-          placeholder="Search projects..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          size="small"
-          sx={{ flexGrow: 1 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            displayEmpty
-            startAdornment={
-              <InputAdornment position="start">
-                <FilterListIcon />
-              </InputAdornment>
-            }
-          >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
-          </Select>
-        </FormControl>
+      <Box sx={{ mt: 4, display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+        {filteredProjects.map((project) => (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            onView={() => setSelectedProject(project)}
+            onAction={handleProjectAction}
+            isVerifier
+          />
+        ))}
       </Box>
 
-      <Grid container spacing={3}>
-        {filteredProjects.map((project) => (
-          <Grid item xs={12} sm={6} md={4} key={project.id}>
-            <ProjectCard
-              project={project}
-              showActions={project.status === 'Pending'}
-              onAction={handleProjectAction}
-              onClick={() => setSelectedProject(project)}
-            />
-          </Grid>
-        ))}
-      </Grid>
-
-      <ProjectDetailsModal
-        project={selectedProject}
-        open={!!selectedProject}
-        onClose={() => setSelectedProject(null)}
-        onAction={handleProjectAction}
-      />
+      {selectedProject && (
+        <ProjectDetailsModal
+          project={selectedProject}
+          open={!!selectedProject}
+          onClose={() => setSelectedProject(null)}
+          onAction={handleProjectAction}
+          isVerifier
+        />
+      )}
     </Box>
   );
 }
