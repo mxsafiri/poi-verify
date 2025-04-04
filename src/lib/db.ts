@@ -1,55 +1,72 @@
-import { supabase } from './supabase';
-import type { Database, Project, Verifier } from '@/types/database';
+import { createClient } from './supabase';
+import type { Project } from '@/types/database';
 
 export async function getProjects(userId: string): Promise<Project[]> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .eq('user_id', userId);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching projects:', error);
+    return [];
+  }
+
   return data || [];
 }
 
-export async function getProject(id: string): Promise<Project | null> {
+export async function getProject(projectId: string): Promise<Project | null> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .eq('id', id)
+    .eq('id', projectId)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching project:', error);
+    return null;
+  }
+
   return data;
 }
 
-export async function createProject(project: Database['public']['Tables']['projects']['Insert']): Promise<Project> {
+export async function createProject(project: Omit<Project, 'id' | 'created_at'>) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('projects')
-    .insert(project)
+    .insert([project])
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error creating project:', error);
+    return null;
+  }
+
   return data;
 }
 
-export async function updateProject(
-  id: string,
-  update: Database['public']['Tables']['projects']['Update']
-): Promise<Project> {
+export async function updateProject(projectId: string, updates: Partial<Project>) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('projects')
-    .update(update)
-    .eq('id', id)
+    .update(updates)
+    .eq('id', projectId)
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error updating project:', error);
+    return null;
+  }
+
   return data;
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  const supabase = createClient();
   const { error } = await supabase
     .from('projects')
     .delete()
@@ -59,6 +76,7 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 export async function checkVerifierStatus(userId: string): Promise<boolean> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('verifiers')
     .select('is_verifier')
@@ -70,6 +88,7 @@ export async function checkVerifierStatus(userId: string): Promise<boolean> {
 }
 
 export async function getVerifierProjects(): Promise<Project[]> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('projects')
     .select('*')

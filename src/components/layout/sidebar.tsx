@@ -23,7 +23,7 @@ const bottomMenuItems = [
   { text: 'Support', href: '/support', icon: HelpIcon },
 ];
 
-export function Sidebar() {
+export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -32,108 +32,72 @@ export function Sidebar() {
       sx={{
         width: 250,
         height: '100vh',
-        bgcolor: '#F5F7FA',
-        borderRight: '1px solid',
+        backgroundColor: 'background.paper',
+        borderRight: 1,
         borderColor: 'divider',
         position: 'fixed',
         left: 0,
         top: 0,
-        p: 2,
+        overflowY: 'auto',
       }}
     >
-      <Box sx={{ mb: 4, px: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary">
-          {user?.email}
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          POI Validation
         </Typography>
       </Box>
 
-      <Typography
-        variant="overline"
-        sx={{ px: 2, color: 'text.secondary', fontWeight: 500 }}
-      >
-        MAIN
-      </Typography>
-
       <List>
-        {menuItems.map(({ text, href, icon: Icon }) => (
-          <ListItem
-            key={href}
-            component={Link}
-            href={href}
-            sx={{
-              borderRadius: 1,
-              mb: 0.5,
-              color: pathname === href ? 'primary.main' : 'text.primary',
-              bgcolor: pathname === href ? 'action.selected' : 'transparent',
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <Icon
-                sx={{
-                  color: pathname === href ? 'primary.main' : 'text.secondary',
-                }}
-              />
-            </ListItemIcon>
-            <ListItemText
-              primary={text}
-              primaryTypographyProps={{
-                fontSize: 14,
-                fontWeight: pathname === href ? 500 : 400,
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <ListItem
+              key={item.text}
+              component={Link}
+              href={item.href}
+              sx={{
+                color: pathname === item.href ? 'primary.main' : 'text.primary',
+                bgcolor: pathname === item.href ? 'action.selected' : 'transparent',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                },
               }}
-            />
-          </ListItem>
-        ))}
+            >
+              <ListItemIcon>
+                <Icon color={pathname === item.href ? 'primary' : 'inherit'} />
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          );
+        })}
       </List>
 
-      <Typography
-        variant="overline"
-        sx={{
-          px: 2,
-          mt: 4,
-          color: 'text.secondary',
-          fontWeight: 500,
-          display: 'block',
-        }}
-      >
-        OTHERS
-      </Typography>
-
-      <List>
-        {bottomMenuItems.map(({ text, href, icon: Icon }) => (
-          <ListItem
-            key={href}
-            component={Link}
-            href={href}
-            sx={{
-              borderRadius: 1,
-              mb: 0.5,
-              color: pathname === href ? 'primary.main' : 'text.primary',
-              bgcolor: pathname === href ? 'action.selected' : 'transparent',
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <Icon
+      <Box sx={{ mt: 'auto', position: 'absolute', bottom: 0, width: '100%' }}>
+        <List>
+          {bottomMenuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <ListItem
+                key={item.text}
+                component={Link}
+                href={item.href}
                 sx={{
-                  color: pathname === href ? 'primary.main' : 'text.secondary',
+                  color: pathname === item.href ? 'primary.main' : 'text.primary',
+                  bgcolor: pathname === item.href ? 'action.selected' : 'transparent',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
                 }}
-              />
-            </ListItemIcon>
-            <ListItemText
-              primary={text}
-              primaryTypographyProps={{
-                fontSize: 14,
-                fontWeight: pathname === href ? 500 : 400,
-              }}
-            />
-          </ListItem>
-        ))}
-      </List>
+              >
+                <ListItemIcon>
+                  <Icon color={pathname === item.href ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
     </Box>
   );
 }

@@ -1,10 +1,21 @@
 'use client';
 
-import { Box, AppBar, Toolbar, Typography, Button, IconButton } from '@mui/material';
-import { Sidebar } from '@/components/layout/sidebar';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import React from 'react';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/layout/sidebar';
+import { createClient } from '@/lib/supabase';
 
 export default function DashboardLayout({
   children,
@@ -12,79 +23,81 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleNewProject = () => {
     router.push('/projects/new');
   };
 
+  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleSignOut = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
+    handleClose();
   };
 
   return (
     <Box sx={{ display: 'flex' }}>
       <Sidebar />
-      
-      <AppBar
-        position="fixed"
-        sx={{
-          ml: '250px',
-          width: 'calc(100% - 250px)',
-          bgcolor: 'background.paper',
-          boxShadow: 'none',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: 'text.primary' }}>
-            POI Validation System
-          </Typography>
-          
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleNewProject}
-            sx={{
-              mr: 2,
-              bgcolor: '#00C853',
-              '&:hover': {
-                bgcolor: '#00B34A',
-              },
-            }}
-          >
-            New Project
-          </Button>
-          
-          <Button
-            variant="outlined"
-            onClick={handleSignOut}
-            sx={{
-              borderColor: 'divider',
-              color: 'text.primary',
-              '&:hover': {
-                borderColor: 'primary.main',
-              },
-            }}
-          >
-            Sign Out
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          mt: 8,
-          ml: '250px',
-          bgcolor: '#F5F7FA',
-          minHeight: '100vh',
-        }}
-      >
-        {children}
+      <Box sx={{ flexGrow: 1 }}>
+        <AppBar position="fixed" sx={{ backgroundColor: 'white', color: 'text.primary' }}>
+          <Toolbar>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Dashboard
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleNewProject}
+              sx={{ mr: 2 }}
+            >
+              New Project
+            </Button>
+            <IconButton
+              size="large"
+              edge="end"
+              onClick={handleMenu}
+              color="inherit"
+            >
+              <Avatar sx={{ bgcolor: 'primary.main' }}>U</Avatar>
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
+            </Menu>
+          </Toolbar>
+        </AppBar>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            mt: 8,
+            backgroundColor: '#F5F7FA',
+            minHeight: '100vh',
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );
