@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createProject } from '@/lib/db';
-import type { Project, ProjectStatus } from '@/types/database';
+import type { ProjectStatus } from '@/types/database';
 
 interface ProjectFormData {
   name: string;
