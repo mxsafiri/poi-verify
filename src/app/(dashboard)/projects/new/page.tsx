@@ -15,12 +15,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createProject } from '@/lib/db';
+import type { Project, ProjectStatus } from '@/types/database';
 
 interface ProjectFormData {
   name: string;
-  description: string;
-  metric: string;
-  budget: string;
+  description: string | null;
+  metric: string | null;
+  budget: string | null;
 }
 
 const NewProjectPage = () => {
@@ -29,9 +30,9 @@ const NewProjectPage = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
-    description: '',
-    metric: '',
-    budget: '',
+    description: null,
+    metric: null,
+    budget: null,
   });
 
   const steps = ['Project Details', 'Impact Metrics', 'Budget'];
@@ -52,10 +53,10 @@ const NewProjectPage = () => {
       await createProject({
         user_id: user.id,
         name: formData.name,
-        description: formData.description,
-        metric: formData.metric,
-        budget: formData.budget,
-        status: 'Pending',
+        description: formData.description || null,
+        metric: formData.metric || null,
+        budget: formData.budget || null,
+        status: 'Pending' as ProjectStatus,
         nft_minted: false,
         funded: false
       });
@@ -69,7 +70,7 @@ const NewProjectPage = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value || null,
     }));
   };
 
@@ -91,7 +92,7 @@ const NewProjectPage = () => {
               fullWidth
               label="Description"
               name="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={handleInputChange}
               margin="normal"
               multiline
@@ -106,7 +107,7 @@ const NewProjectPage = () => {
             fullWidth
             label="Impact Metric"
             name="metric"
-            value={formData.metric}
+            value={formData.metric || ''}
             onChange={handleInputChange}
             margin="normal"
             required
@@ -119,7 +120,7 @@ const NewProjectPage = () => {
             fullWidth
             label="Budget"
             name="budget"
-            value={formData.budget}
+            value={formData.budget || ''}
             onChange={handleInputChange}
             margin="normal"
             required
