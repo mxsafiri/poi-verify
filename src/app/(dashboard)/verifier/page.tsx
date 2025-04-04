@@ -12,8 +12,9 @@ import {
   Select,
   MenuItem,
   FormControl,
-  Grid,
+  Grid as MuiGrid,
 } from '@mui/material';
+import type { GridProps } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -23,6 +24,8 @@ import { ProjectCard } from '@/components/ui/project-card';
 import { ProjectDetailsModal } from '@/components/ui/project-details-modal';
 import { sendStatusUpdateEmail } from '@/lib/email';
 import type { Project, ProjectStatus } from '@/types/database';
+
+const Grid = MuiGrid as React.ComponentType<GridProps>;
 
 export default function VerifierPage() {
   const router = useRouter();
