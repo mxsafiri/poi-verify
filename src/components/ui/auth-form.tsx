@@ -17,7 +17,7 @@ interface AuthFormProps {
   type: 'login' | 'signup';
 }
 
-export default function AuthForm({ type }: AuthFormProps) {
+const AuthForm = ({ type }: AuthFormProps) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -143,4 +143,6 @@ export default function AuthForm({ type }: AuthFormProps) {
       </Box>
     </Box>
   );
-}
+};
+
+export { AuthForm };

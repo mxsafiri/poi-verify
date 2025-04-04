@@ -28,7 +28,7 @@ interface ProjectDetailsModalProps {
   onClose: () => void;
 }
 
-export default function ProjectDetailsModal({ project, open, onClose }: ProjectDetailsModalProps) {
+const ProjectDetailsModal = ({ project, open, onClose }: ProjectDetailsModalProps) => {
   if (!project) return null;
 
   const getStatusColor = (status: string) => {
@@ -153,4 +153,6 @@ export default function ProjectDetailsModal({ project, open, onClose }: ProjectD
       </DialogActions>
     </Dialog>
   );
-}
+};
+
+export { ProjectDetailsModal };
