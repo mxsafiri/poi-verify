@@ -26,9 +26,11 @@ interface ProjectDetailsModalProps {
   project: Project | null;
   open: boolean;
   onClose: () => void;
+  onAction?: (action: 'verify' | 'reject', project: Project) => Promise<void>;
+  isVerifier?: boolean;
 }
 
-const ProjectDetailsModal = ({ project, open, onClose }: ProjectDetailsModalProps) => {
+const ProjectDetailsModal = ({ project, open, onClose, onAction, isVerifier }: ProjectDetailsModalProps) => {
   if (!project) return null;
 
   const getStatusColor = (status: string) => {
@@ -147,6 +149,24 @@ const ProjectDetailsModal = ({ project, open, onClose }: ProjectDetailsModalProp
         </Box>
       </DialogContent>
       <DialogActions>
+        {isVerifier && project.status === 'Pending' && onAction && (
+          <>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => onAction('reject', project)}
+            >
+              Reject Project
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => onAction('verify', project)}
+            >
+              Verify Project
+            </Button>
+          </>
+        )}
         <Button onClick={onClose} color="primary">
           Close
         </Button>
