@@ -1,202 +1,187 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
-  TextField,
   Button,
+  TextField,
   Typography,
-  Grid,
+  Paper,
   Stepper,
   Step,
   StepLabel,
-  Chip,
-  MenuItem,
+  CircularProgress,
 } from '@mui/material';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
+import { createProject } from '@/lib/db';
+import { useAuth } from '@/lib/auth/AuthContext';
 
-const steps = ['START HERE', 'IMPACT METRICS', 'VERIFICATION', 'REVIEW'];
+const steps = ['Project Details', 'Impact Metrics', 'Review'];
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     metric: '',
     budget: '',
-    impactCategory: '',
-    verificationFrequency: '',
-    measurementUnits: '',
-    quantifiableMetrics: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleNext = () => {
+    setActiveStep((prevStep) => prevStep + 1);
   };
 
-  const handleSubmit = async () => {
+  const handleBack = () => {
+    setActiveStep((prevStep) => prevStep - 1);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { error } = await supabase.from('projects').insert({
+      await createProject({
+        ...formData,
         user_id: user.id,
-        name: formData.name,
-        description: formData.description,
-        metric: formData.metric,
-        budget: formData.budget,
         status: 'Pending',
+        nft_minted: false,
+        funded: false,
       });
-
-      if (error) throw error;
-
       router.push('/dashboard');
-      router.refresh();
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Failed to create project. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const renderStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
+          <>
+            <TextField
+              fullWidth
+              label="Project Name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              multiline
+              rows={4}
+              required
+              sx={{ mb: 3 }}
+            />
+          </>
+        );
+      case 1:
+        return (
+          <>
+            <TextField
+              fullWidth
+              label="Impact Metric"
+              name="metric"
+              value={formData.metric}
+              onChange={handleInputChange}
+              required
+              sx={{ mb: 3 }}
+              helperText="Describe how the impact will be measured"
+            />
+            <TextField
+              fullWidth
+              label="Budget"
+              name="budget"
+              type="number"
+              value={formData.budget}
+              onChange={handleInputChange}
+              required
+              sx={{ mb: 3 }}
+              InputProps={{
+                startAdornment: '$',
+              }}
+            />
+          </>
+        );
+      case 2:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Project Summary
+            </Typography>
+            <Typography><strong>Name:</strong> {formData.name}</Typography>
+            <Typography><strong>Description:</strong> {formData.description}</Typography>
+            <Typography><strong>Impact Metric:</strong> {formData.metric}</Typography>
+            <Typography><strong>Budget:</strong> ${formData.budget}</Typography>
+          </Box>
+        );
+      default:
+        return null;
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4 }}>
-        Submit New Impact Project
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      <Paper sx={{ p: 4, maxWidth: 800, mx: 'auto' }}>
+        <Typography variant="h4" gutterBottom align="center">
+          Create New Project
+        </Typography>
 
-      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-      <Card>
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Project Details
-              </Typography>
-            </Grid>
+        <Box component="form" onSubmit={handleSubmit}>
+          {renderStepContent(activeStep)}
 
-            <Grid item xs={12}>
-              <TextField
-                name="name"
-                label="Project Title"
-                value={formData.name}
-                onChange={handleChange}
-                fullWidth
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                name="description"
-                label="Project Description"
-                value={formData.description}
-                onChange={handleChange}
-                multiline
-                rows={4}
-                fullWidth
-                required
-                helperText="Tell us what you want to achieve"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                name="impactCategory"
-                label="Impact Category"
-                value={formData.impactCategory}
-                onChange={handleChange}
-                fullWidth
-                required
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+            <Button
+              onClick={handleBack}
+              disabled={activeStep === 0 || loading}
+            >
+              Back
+            </Button>
+            {activeStep === steps.length - 1 ? (
+              <Button
+                variant="contained"
+                type="submit"
+                disabled={loading}
               >
-                <MenuItem value="environmental">Environmental</MenuItem>
-                <MenuItem value="social">Social</MenuItem>
-                <MenuItem value="economic">Economic</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="budget"
-                label="Budget (USD)"
-                value={formData.budget}
-                onChange={handleChange}
-                fullWidth
-                required
-                type="number"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2, mt: 2 }}>
-                Verification Plan
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="measurementUnits"
-                label="Measurement Units"
-                value={formData.measurementUnits}
-                onChange={handleChange}
-                fullWidth
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                name="verificationFrequency"
-                label="Verification Frequency"
-                value={formData.verificationFrequency}
-                onChange={handleChange}
-                fullWidth
-                required
+                {loading ? <CircularProgress size={24} /> : 'Submit Project'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                disabled={loading}
               >
-                <MenuItem value="weekly">Weekly</MenuItem>
-                <MenuItem value="monthly">Monthly</MenuItem>
-                <MenuItem value="quarterly">Quarterly</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => router.back()}
-                  sx={{ borderColor: 'divider' }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit}
-                  sx={{
-                    bgcolor: '#00C853',
-                    '&:hover': {
-                      bgcolor: '#00B34A',
-                    },
-                  }}
-                >
-                  Submit Project
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+                Next
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Paper>
     </Box>
   );
 }

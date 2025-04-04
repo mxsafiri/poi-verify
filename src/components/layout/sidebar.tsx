@@ -1,103 +1,108 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { Box, Typography, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import PersonIcon from '@mui/icons-material/Person';
-import StorefrontIcon from '@mui/icons-material/Storefront';
-import SettingsIcon from '@mui/icons-material/Settings';
-import HelpIcon from '@mui/icons-material/Help';
+import React from 'react';
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Drawer,
+  Typography,
+  Divider,
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  AddCircle as AddCircleIcon,
+  VerifiedUser as VerifiedUserIcon,
+} from '@mui/icons-material';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { useVerifier } from '@/lib/hooks/useVerifier';
 
-const menuItems = [
-  { text: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
-  { text: 'Impact projects', href: '/projects', icon: AssignmentIcon },
-  { text: 'Profile', href: '/profile', icon: PersonIcon },
-  { text: 'Marketplace', href: '/marketplace', icon: StorefrontIcon },
-];
+const drawerWidth = 250;
 
-const bottomMenuItems = [
-  { text: 'Settings', href: '/settings', icon: SettingsIcon },
-  { text: 'Support', href: '/support', icon: HelpIcon },
-];
-
-export default function Sidebar() {
+const Sidebar = () => {
+  const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { isVerifier } = useVerifier();
+
+  const menuItems = [
+    {
+      text: 'Dashboard',
+      icon: <DashboardIcon />,
+      path: '/dashboard',
+    },
+    {
+      text: 'New Project',
+      icon: <AddCircleIcon />,
+      path: '/projects/new',
+    },
+    ...(isVerifier ? [
+      {
+        text: 'Verifier Dashboard',
+        icon: <VerifiedUserIcon />,
+        path: '/verifier',
+      },
+    ] : []),
+  ];
 
   return (
-    <Box
+    <Drawer
+      variant="permanent"
       sx={{
-        width: 250,
-        height: '100vh',
-        backgroundColor: 'background.paper',
-        borderRight: 1,
-        borderColor: 'divider',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        overflowY: 'auto',
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          bgcolor: 'background.default',
+          borderRight: '1px solid',
+          borderColor: 'divider',
+        },
       }}
     >
       <Box sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ color: 'primary.main' }}>
           POI Validation
         </Typography>
       </Box>
-
-      <List>
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <ListItem
-              key={item.text}
-              component={Link}
-              href={item.href}
+      
+      <Divider />
+      
+      <List sx={{ mt: 2 }}>
+        {menuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={pathname === item.path}
+              onClick={() => router.push(item.path)}
               sx={{
-                color: pathname === item.href ? 'primary.main' : 'text.primary',
-                bgcolor: pathname === item.href ? 'action.selected' : 'transparent',
-                '&:hover': {
-                  bgcolor: 'action.hover',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.light',
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
                 },
               }}
             >
-              <ListItemIcon>
-                <Icon color={pathname === item.href ? 'primary' : 'inherit'} />
+              <ListItemIcon sx={{ color: pathname === item.path ? 'primary.main' : 'inherit' }}>
+                {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItem>
-          );
-        })}
-      </List>
-
-      <Box sx={{ mt: 'auto', position: 'absolute', bottom: 0, width: '100%' }}>
-        <List>
-          {bottomMenuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <ListItem
-                key={item.text}
-                component={Link}
-                href={item.href}
+              <ListItemText 
+                primary={item.text}
                 sx={{
-                  color: pathname === item.href ? 'primary.main' : 'text.primary',
-                  bgcolor: pathname === item.href ? 'action.selected' : 'transparent',
-                  '&:hover': {
-                    bgcolor: 'action.hover',
+                  '& .MuiListItemText-primary': {
+                    color: pathname === item.path ? 'primary.main' : 'text.primary',
                   },
                 }}
-              >
-                <ListItemIcon>
-                  <Icon color={pathname === item.href ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            );
-          })}
-        </List>
-      </Box>
-    </Box>
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Drawer>
   );
-}
+};
+
+export { Sidebar };
