@@ -15,9 +15,10 @@ import { createClient } from '@/lib/supabase';
 
 interface AuthFormProps {
   type: 'login' | 'signup';
+  onSubmit?: (email: string, password: string) => Promise<void>;
 }
 
-const AuthForm = ({ type }: AuthFormProps) => {
+const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,22 +31,25 @@ const AuthForm = ({ type }: AuthFormProps) => {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      
-      if (type === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        router.push('/login?message=Check your email to confirm your account');
+      if (onSubmit) {
+        await onSubmit(email, password);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        router.push('/dashboard');
+        const supabase = createClient();
+        if (type === 'signup') {
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+          if (error) throw error;
+          router.push('/login?message=Check your email to confirm your account');
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (error) throw error;
+          router.push('/dashboard');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
