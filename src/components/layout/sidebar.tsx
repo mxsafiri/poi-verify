@@ -18,7 +18,6 @@ import {
   VerifiedUser as VerifiedUserIcon,
 } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth/AuthContext';
 import { useVerifier } from '@/lib/hooks/useVerifier';
 
 const drawerWidth = 250;
