@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createProject } from '@/lib/db';
+import type { Project } from '@/types/database';
 
 interface ProjectFormData {
   name: string;
@@ -50,8 +51,14 @@ const NewProjectPage = () => {
 
     try {
       await createProject({
-        ...formData,
         user_id: user.id,
+        name: formData.name,
+        description: formData.description,
+        metric: formData.metric,
+        budget: formData.budget,
+        status: 'Pending',
+        nft_minted: false,
+        funded: false
       });
       router.push('/dashboard');
     } catch (error) {
