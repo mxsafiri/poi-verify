@@ -10,6 +10,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Button,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import type { Project } from '@/types/database';
@@ -34,10 +35,10 @@ const ProjectCard = ({ project, onView, onAction, isVerifier }: ProjectCardProps
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Approved':
-        return 'success';
       case 'Pending':
         return 'warning';
+      case 'Approved':
+        return 'success';
       case 'Rejected':
         return 'error';
       default:
@@ -47,54 +48,100 @@ const ProjectCard = ({ project, onView, onAction, isVerifier }: ProjectCardProps
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6" component="div" noWrap>
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
             {project.name}
           </Typography>
-          {isVerifier && (
-            <IconButton size="small" onClick={handleMenuClick}>
+          {isVerifier && project.status === 'Pending' && (
+            <IconButton onClick={handleMenuClick} size="small">
               <MoreVertIcon />
             </IconButton>
           )}
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={handleMenuClose}>View Details</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
-          </Menu>
         </Box>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            mb: 2,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-          }}
-        >
+        <Typography color="text.secondary" sx={{ mb: 2 }} noWrap>
           {project.description}
         </Typography>
 
-        <Box sx={{ mt: 'auto' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Chip
-              label={project.status}
-              color={getStatusColor(project.status)}
-              size="small"
-            />
-            <Typography variant="body2" color="text.secondary">
-              ${parseFloat(project.budget || '0').toLocaleString()}
-            </Typography>
-          </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+          <Chip
+            label={project.status}
+            color={getStatusColor(project.status)}
+            size="small"
+          />
+          {project.nft_minted && (
+            <Chip label="NFT Minted" color="primary" size="small" />
+          )}
+          {project.funded && (
+            <Chip label="Funded" color="success" size="small" />
+          )}
         </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Impact Metric
+          </Typography>
+          <Typography variant="body2">{project.metric || 'Not specified'}</Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Typography variant="body2" color="text.secondary">
+            Budget
+          </Typography>
+          <Typography variant="body2">${project.budget || '0'}</Typography>
+        </Box>
+
+        {onView && (
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              size="small"
+              onClick={onView}
+              sx={{
+                color: 'primary.main',
+                '&:hover': { bgcolor: 'primary.light' },
+              }}
+            >
+              View Details
+            </Button>
+          </Box>
+        )}
       </CardContent>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        {onAction && project.status === 'Pending' && (
+          <>
+            <MenuItem
+              onClick={() => {
+                onAction('verify', project);
+                handleMenuClose();
+              }}
+            >
+              Verify Project
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onAction('reject', project);
+                handleMenuClose();
+              }}
+            >
+              Reject Project
+            </MenuItem>
+          </>
+        )}
+      </Menu>
     </Card>
   );
 };
