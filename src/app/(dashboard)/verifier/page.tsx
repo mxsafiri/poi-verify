@@ -12,9 +12,7 @@ import {
   Select,
   MenuItem,
   FormControl,
-  Grid as MuiGrid,
 } from '@mui/material';
-import type { GridProps } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -24,8 +22,6 @@ import { ProjectCard } from '@/components/ui/project-card';
 import { ProjectDetailsModal } from '@/components/ui/project-details-modal';
 import { sendStatusUpdateEmail } from '@/lib/email';
 import type { Project, ProjectStatus } from '@/types/database';
-
-const Grid = MuiGrid as React.ComponentType<GridProps>;
 
 export default function VerifierPage() {
   const router = useRouter();
@@ -192,40 +188,34 @@ export default function VerifierPage() {
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Submitted
-              </Typography>
-              <Typography variant="h4">{stats.submitted}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Approved
-              </Typography>
-              <Typography variant="h4">{stats.approved}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Amount
-              </Typography>
-              <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+        <Card sx={{ flex: 1 }}>
+          <CardContent>
+            <Typography color="textSecondary" gutterBottom>
+              Total Submitted
+            </Typography>
+            <Typography variant="h4">{stats.submitted}</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: 1 }}>
+          <CardContent>
+            <Typography color="textSecondary" gutterBottom>
+              Total Approved
+            </Typography>
+            <Typography variant="h4">{stats.approved}</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: 1 }}>
+          <CardContent>
+            <Typography color="textSecondary" gutterBottom>
+              Total Amount
+            </Typography>
+            <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
+          </CardContent>
+        </Card>
+      </Box>
 
-      <Box sx={{ mt: 4, display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+      <Box sx={{ mt: 4, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
         {filteredProjects.map((project) => (
           <ProjectCard
             key={project.id}
