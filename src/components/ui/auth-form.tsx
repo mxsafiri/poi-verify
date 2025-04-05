@@ -9,19 +9,24 @@ import {
   Alert,
   Paper,
   CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
 interface AuthFormProps {
   type: 'login' | 'signup';
-  onSubmit?: (email: string, password: string) => Promise<void>;
+  onSubmit?: (email: string, password: string, role?: string) => Promise<void>;
 }
 
 const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('user');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,23 +37,50 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
 
     try {
       if (onSubmit) {
-        await onSubmit(email, password);
+        await onSubmit(email, password, role);
       } else {
         const supabase = createClient();
         if (type === 'signup') {
-          const { error } = await supabase.auth.signUp({
+          const { error: signUpError, data } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+              data: {
+                role: role
+              }
+            }
           });
-          if (error) throw error;
+          if (signUpError) throw signUpError;
+          
+          // If signup successful, create verifier record if role is verifier
+          if (role === 'verifier' && data?.user) {
+            const { error: verifierError } = await supabase
+              .from('verifiers')
+              .insert([{ user_id: data.user.id }]);
+            if (verifierError) throw verifierError;
+          }
+          
           router.push('/login?message=Check your email to confirm your account');
         } else {
-          const { error } = await supabase.auth.signInWithPassword({
+          const { error: signInError, data } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-          if (error) throw error;
-          router.push('/dashboard');
+          if (signInError) throw signInError;
+          
+          // Check if user is a verifier
+          const { data: verifierData } = await supabase
+            .from('verifiers')
+            .select('is_verifier')
+            .eq('user_id', data.user.id)
+            .single();
+          
+          // Redirect based on role
+          if (verifierData?.is_verifier) {
+            router.push('/verifier');
+          } else {
+            router.push('/dashboard');
+          }
         }
       }
     } catch (err) {
@@ -59,92 +91,76 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
   };
 
   return (
-    <Box
-      component={Paper}
-      elevation={3}
-      sx={{
-        p: 4,
-        maxWidth: 400,
-        mx: 'auto',
-        mt: 8,
-      }}
-    >
-      <Typography variant="h5" component="h1" gutterBottom align="center">
-        {type === 'login' ? 'Sign In' : 'Create Account'}
-      </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-        <TextField
-          fullWidth
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          sx={{ mb: 3 }}
-        />
-
-        <Button
-          fullWidth
-          variant="contained"
-          type="submit"
-          disabled={loading}
-          sx={{ mb: 2 }}
-        >
-          {loading ? (
-            <CircularProgress size={24} color="inherit" />
-          ) : (
-            type === 'login' ? 'Sign In' : 'Sign Up'
-          )}
-        </Button>
-
-        {type === 'signup' && (
-          <Typography variant="body2" color="text.secondary" align="center">
-            By signing up, you agree to our Terms and Privacy Policy.
-          </Typography>
-        )}
-
-        <Typography align="center" sx={{ mt: 2 }}>
-          {type === 'login' ? (
-            <>
-              Do not have an account?{' '}
-              <Button
-                variant="text"
-                onClick={() => router.push('/signup')}
-                sx={{ p: 0, minWidth: 'auto' }}
-              >
-                Sign up
-              </Button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <Button
-                variant="text"
-                onClick={() => router.push('/login')}
-                sx={{ p: 0, minWidth: 'auto' }}
-              >
-                Sign in
-              </Button>
-            </>
-          )}
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      p: 2 
+    }}>
+      <Paper sx={{ p: 4, width: '100%', maxWidth: 400 }}>
+        <Typography variant="h5" component="h1" gutterBottom align="center">
+          {type === 'login' ? 'Login' : 'Sign Up'}
         </Typography>
-      </Box>
+        
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            required
+            margin="normal"
+          />
+          
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            required
+            margin="normal"
+          />
+          
+          {type === 'signup' && (
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                label="Role"
+              >
+                <MenuItem value="user">Project Owner</MenuItem>
+                <MenuItem value="verifier">Verifier</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ mt: 3 }}
+            disabled={loading}
+          >
+            {loading ? (
+              <CircularProgress size={24} />
+            ) : type === 'login' ? (
+              'Login'
+            ) : (
+              'Sign Up'
+            )}
+          </Button>
+        </form>
+      </Paper>
     </Box>
   );
 };

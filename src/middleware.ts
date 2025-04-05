@@ -23,20 +23,54 @@ export async function middleware(req: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
+  // Public routes
+  if (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup') {
+    if (session) {
+      // If user is already logged in, redirect based on their role
+      const { data: verifierData } = await supabase
+        .from('verifiers')
+        .select('is_verifier')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (verifierData?.is_verifier) {
+        return NextResponse.redirect(new URL('/verifier', req.url));
+      } else {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+    }
+    return res;
+  }
+
   // Protected routes
-  if (req.nextUrl.pathname.startsWith('/dashboard') || 
-      req.nextUrl.pathname.startsWith('/verifier')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', req.url));
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // Verifier-only routes
+  if (req.nextUrl.pathname.startsWith('/verifier')) {
+    const { data: verifierData } = await supabase
+      .from('verifiers')
+      .select('is_verifier')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (!verifierData?.is_verifier) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   }
 
-  // Redirect to dashboard if logged in and trying to access auth pages
-  if (session && (
-    req.nextUrl.pathname.startsWith('/login') || 
-    req.nextUrl.pathname.startsWith('/signup')
-  )) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+  // Project owner routes
+  if (req.nextUrl.pathname.startsWith('/dashboard')) {
+    const { data: verifierData } = await supabase
+      .from('verifiers')
+      .select('is_verifier')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (verifierData?.is_verifier) {
+      return NextResponse.redirect(new URL('/verifier', req.url));
+    }
   }
 
   return res;
