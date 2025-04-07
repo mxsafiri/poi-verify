@@ -5,6 +5,26 @@ export interface MockUser {
   role: 'user' | 'verifier';
 }
 
+// Helper function to safely access localStorage
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(key, value);
+    }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  },
+};
+
 // Mock authentication functions
 export const mockAuth = {
   login: (email: string, password: string): Promise<MockUser> => {
@@ -16,7 +36,7 @@ export const mockAuth = {
           email,
           role: email.includes('verifier') ? 'verifier' : 'user'
         };
-        localStorage.setItem('mockUser', JSON.stringify(user));
+        safeLocalStorage.setItem('mockUser', JSON.stringify(user));
         resolve(user);
       }, 500);
     });
@@ -30,7 +50,7 @@ export const mockAuth = {
           email,
           role: role as 'user' | 'verifier'
         };
-        localStorage.setItem('mockUser', JSON.stringify(user));
+        safeLocalStorage.setItem('mockUser', JSON.stringify(user));
         resolve(user);
       }, 500);
     });
@@ -38,13 +58,13 @@ export const mockAuth = {
 
   logout: (): Promise<void> => {
     return new Promise((resolve) => {
-      localStorage.removeItem('mockUser');
+      safeLocalStorage.removeItem('mockUser');
       resolve();
     });
   },
 
   getCurrentUser: (): MockUser | null => {
-    const userStr = localStorage.getItem('mockUser');
+    const userStr = safeLocalStorage.getItem('mockUser');
     if (!userStr) return null;
     try {
       return JSON.parse(userStr);
