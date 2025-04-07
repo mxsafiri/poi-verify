@@ -1,41 +1,44 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { mockAuth } from '@/lib/mock-auth';
-import { Button } from '@mui/material';
+import { Button, Box, Card, CardContent, Typography, FormControl, Select, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import { supabase } from '@/lib/supabase';
-import { useVerifier } from '@/lib/hooks/useVerifier';
-import { ProjectCard } from '@/components/ui/project-card';
-import { ProjectDetailsModal } from '@/components/ui/project-details-modal';
-import { sendStatusUpdateEmail } from '@/lib/email';
-import type { Project, ProjectStatus } from '@/types/database';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import SearchIcon from '@mui/icons-material/Search';
+
+// Types
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: ProjectStatus;
+  amount: number;
+  createdAt: string;
+}
+
+type ProjectStatus = 'Pending' | 'Approved' | 'Rejected';
+
+interface Stats {
+  submitted: number;
+  approved: number;
+  totalAmount: number;
+}
 
 export default function VerifierPage() {
   const router = useRouter();
   const user = mockAuth.getCurrentUser();
-  const { isVerifier, loading: verifierLoading } = useVerifier();
+
+  // State
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('today');
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [stats, setStats] = useState({
+  const [dateFilter, setDateFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState<Stats>({
     submitted: 0,
     approved: 0,
     totalAmount: 0,
@@ -46,98 +49,95 @@ export default function VerifierPage() {
     router.push('/login');
   };
 
+  // Mock data
   useEffect(() => {
-    if (!isVerifier && !verifierLoading) {
-      router.push('/dashboard');
-    }
-  }, [isVerifier, verifierLoading, router]);
+    // Simulated projects data
+    const mockProjects: Project[] = [
+      {
+        id: '1',
+        title: 'Project A',
+        description: 'Description for Project A',
+        status: 'Pending',
+        amount: 5000,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        title: 'Project B',
+        description: 'Description for Project B',
+        status: 'Approved',
+        amount: 7500,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    setProjects(mockProjects);
+    setFilteredProjects(mockProjects);
+  }, []);
 
+  // Filter projects
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const { data: projectsData, error } = await supabase
-          .from('projects')
-          .select('*, users(email)')
-          .order('created_at', { ascending: false });
+    let filtered = [...projects];
 
-        if (error) throw error;
-
-        if (projectsData) {
-          const typedProjects = projectsData.map(project => ({
-            ...project,
-            status: project.status as ProjectStatus,
-            users: project.users || undefined
-          }));
-
-          setProjects(typedProjects);
-          setFilteredProjects(typedProjects);
-
-          const stats = {
-            submitted: typedProjects.length,
-            approved: typedProjects.filter(p => p.status === 'Approved').length,
-            totalAmount: typedProjects.reduce((sum, p) => sum + (parseFloat(p.budget || '0') || 0), 0)
-          };
-
-          setStats(stats);
-        }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      }
-    };
-
-    if (isVerifier) {
-      fetchProjects();
-    }
-  }, [isVerifier, dateFilter, statusFilter]);
-
-  const handleProjectAction = async (action: 'verify' | 'reject', project: Project) => {
-    try {
-      const updates = {
-        status: action === 'verify' ? ('Approved' as const) : ('Rejected' as const),
-        nft_minted: action === 'verify',
-        funded: action === 'verify',
-      };
-
-      const { error } = await supabase
-        .from('projects')
-        .update(updates)
-        .eq('id', project.id);
-
-      if (error) throw error;
-
-      // Send email notification
-      if (project.users?.email) {
-        await sendStatusUpdateEmail({ ...project, ...updates }, project.users.email);
-      }
-
-      setProjects(projects.map(p => 
-        p.id === project.id ? { ...p, ...updates } : p
-      ));
-    } catch (error) {
-      console.error(`Error ${action}ing project:`, error);
-      alert(`Failed to ${action} project. Please try again.`);
-    }
-  };
-
-  useEffect(() => {
-    const applyFilters = () => {
-      let filteredResults = projects.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    }
 
-      if (statusFilter !== 'all') {
-        filteredResults = filteredResults.filter(project => project.status === statusFilter);
-      }
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(project => project.status === statusFilter);
+    }
 
-      setFilteredProjects(filteredResults);
-    };
+    // Apply date filter
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      filtered = filtered.filter(project => {
+        const projectDate = new Date(project.createdAt);
+        switch (dateFilter) {
+          case 'today':
+            return projectDate >= today;
+          case 'week':
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return projectDate >= weekAgo;
+          case 'month':
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            return projectDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
+    }
 
-    applyFilters();
-  }, [projects, searchTerm, statusFilter]);
+    setFilteredProjects(filtered);
 
-  if (verifierLoading) return null;
-  if (!isVerifier) return null;
+    // Update stats
+    const newStats = filtered.reduce((acc, project) => ({
+      submitted: acc.submitted + 1,
+      approved: acc.approved + (project.status === 'Approved' ? 1 : 0),
+      totalAmount: acc.totalAmount + project.amount,
+    }), {
+      submitted: 0,
+      approved: 0,
+      totalAmount: 0,
+    });
+
+    setStats(newStats);
+  }, [projects, searchTerm, statusFilter, dateFilter]);
+
+  const handleProjectAction = (projectId: string, action: 'approve' | 'reject') => {
+    setProjects(projects.map(p => 
+      p.id === projectId 
+        ? { ...p, status: action === 'approve' ? 'Approved' : 'Rejected' }
+        : p
+    ));
+  };
 
   return (
     <ProtectedRoute requiredRole="verifier">
@@ -151,33 +151,59 @@ export default function VerifierPage() {
             </Button>
           </div>
         </div>
-        
-        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h5" fontWeight="600">Projects to be Approved</Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+
+        <Box sx={{ mb: 4 }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Submitted
+                </Typography>
+                <Typography variant="h4">{stats.submitted}</Typography>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Approved
+                </Typography>
+                <Typography variant="h4">{stats.approved}</Typography>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Amount
+                </Typography>
+                <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
+              </CardContent>
+            </Card>
+          </div>
+        </Box>
+
+        <Box sx={{ mb: 4 }}>
+          <div className="flex flex-wrap gap-4">
+            <FormControl size="small">
               <Select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                displayEmpty
                 startAdornment={
                   <InputAdornment position="start">
                     <CalendarTodayIcon fontSize="small" />
                   </InputAdornment>
                 }
               >
+                <MenuItem value="all">All Time</MenuItem>
                 <MenuItem value="today">Today</MenuItem>
                 <MenuItem value="week">This Week</MenuItem>
                 <MenuItem value="month">This Month</MenuItem>
-                <MenuItem value="all">All Time</MenuItem>
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+            <FormControl size="small">
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
-                displayEmpty
                 startAdornment={
                   <InputAdornment position="start">
                     <FilterListIcon fontSize="small" />
@@ -204,57 +230,45 @@ export default function VerifierPage() {
                 ),
               }}
             />
-          </Box>
+          </div>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Submitted
-              </Typography>
-              <Typography variant="h4">{stats.submitted}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Approved
-              </Typography>
-              <Typography variant="h4">{stats.approved}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Amount
-              </Typography>
-              <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
-
-        <Box sx={{ mt: 4, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onView={() => setSelectedProject(project)}
-              onAction={handleProjectAction}
-              isVerifier
-            />
+            <Card key={project.id}>
+              <CardContent>
+                <Typography variant="h6">{project.title}</Typography>
+                <Typography color="textSecondary" gutterBottom>
+                  {project.description}
+                </Typography>
+                <Typography>Status: {project.status}</Typography>
+                <Typography>Amount: ${project.amount.toLocaleString()}</Typography>
+                <Box sx={{ mt: 2 }}>
+                  {project.status === 'Pending' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleProjectAction(project.id, 'approve')}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleProjectAction(project.id, 'reject')}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
           ))}
-        </Box>
-
-        {selectedProject && (
-          <ProjectDetailsModal
-            project={selectedProject}
-            open={!!selectedProject}
-            onClose={() => setSelectedProject(null)}
-            onAction={handleProjectAction}
-            isVerifier
-          />
-        )}
+        </div>
       </div>
     </ProtectedRoute>
   );
