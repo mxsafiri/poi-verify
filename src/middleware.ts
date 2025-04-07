@@ -2,20 +2,38 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          res.cookies.set({ name, value, ...options });
+        get(name: string) {
+          return request.cookies.get(name)?.value;
         },
-        remove: (name, options) => {
-          res.cookies.set({ name, value: '', ...options });
+        set(name: string, value: string, options: any) {
+          request.cookies.set(name, value);
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          request.cookies.delete(name);
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.delete(name);
         },
       },
     }
@@ -24,7 +42,7 @@ export async function middleware(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
 
   // Public routes
-  if (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup') {
+  if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') {
     if (session) {
       // If user is already logged in, redirect based on their role
       const { data: verifierData } = await supabase
@@ -34,21 +52,21 @@ export async function middleware(req: NextRequest) {
         .single();
 
       if (verifierData?.is_verifier) {
-        return NextResponse.redirect(new URL('/verifier', req.url));
+        return NextResponse.redirect(new URL('/verifier', request.url));
       } else {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+        return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     }
-    return res;
+    return response;
   }
 
   // Protected routes
   if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // Verifier-only routes
-  if (req.nextUrl.pathname.startsWith('/verifier')) {
+  if (request.nextUrl.pathname.startsWith('/verifier')) {
     const { data: verifierData } = await supabase
       .from('verifiers')
       .select('is_verifier')
@@ -56,12 +74,12 @@ export async function middleware(req: NextRequest) {
       .single();
 
     if (!verifierData?.is_verifier) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 
   // Project owner routes
-  if (req.nextUrl.pathname.startsWith('/dashboard')) {
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
     const { data: verifierData } = await supabase
       .from('verifiers')
       .select('is_verifier')
@@ -69,13 +87,13 @@ export async function middleware(req: NextRequest) {
       .single();
 
     if (verifierData?.is_verifier) {
-      return NextResponse.redirect(new URL('/verifier', req.url));
+      return NextResponse.redirect(new URL('/verifier', request.url));
     }
   }
 
-  return res;
+  return response;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/verifier/:path*', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/verifier/:path*', '/login', '/signup', '/auth/callback'],
 };
