@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { mockAuth } from '@/lib/mock-auth';
+import { Button } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -25,6 +27,7 @@ import type { Project, ProjectStatus } from '@/types/database';
 
 export default function VerifierPage() {
   const router = useRouter();
+  const user = mockAuth.getCurrentUser();
   const { isVerifier, loading: verifierLoading } = useVerifier();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -37,6 +40,11 @@ export default function VerifierPage() {
     approved: 0,
     totalAmount: 0,
   });
+
+  const handleLogout = async () => {
+    await mockAuth.logout();
+    router.push('/login');
+  };
 
   useEffect(() => {
     if (!isVerifier && !verifierLoading) {
@@ -132,110 +140,122 @@ export default function VerifierPage() {
   if (!isVerifier) return null;
 
   return (
-    <Box>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h5" fontWeight="600">Projects to be Approved</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <Select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              displayEmpty
-              startAdornment={
-                <InputAdornment position="start">
-                  <CalendarTodayIcon fontSize="small" />
-                </InputAdornment>
-              }
-            >
-              <MenuItem value="today">Today</MenuItem>
-              <MenuItem value="week">This Week</MenuItem>
-              <MenuItem value="month">This Month</MenuItem>
-              <MenuItem value="all">All Time</MenuItem>
-            </Select>
-          </FormControl>
+    <ProtectedRoute requiredRole="verifier">
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Verifier Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span>{user?.email}</span>
+            <Button variant="outlined" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        </div>
+        
+        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h5" fontWeight="600">Projects to be Approved</Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <Select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                displayEmpty
+                startAdornment={
+                  <InputAdornment position="start">
+                    <CalendarTodayIcon fontSize="small" />
+                  </InputAdornment>
+                }
+              >
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="week">This Week</MenuItem>
+                <MenuItem value="month">This Month</MenuItem>
+                <MenuItem value="all">All Time</MenuItem>
+              </Select>
+            </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
-              displayEmpty
-              startAdornment={
-                <InputAdornment position="start">
-                  <FilterListIcon fontSize="small" />
-                </InputAdornment>
-              }
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Approved">Approved</MenuItem>
-              <MenuItem value="Rejected">Rejected</MenuItem>
-            </Select>
-          </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
+                displayEmpty
+                startAdornment={
+                  <InputAdornment position="start">
+                    <FilterListIcon fontSize="small" />
+                  </InputAdornment>
+                }
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="Pending">Pending</MenuItem>
+                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Rejected">Rejected</MenuItem>
+              </Select>
+            </FormControl>
 
-          <TextField
-            size="small"
-            placeholder="Search projects..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
+            <TextField
+              size="small"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
         </Box>
-      </Box>
 
-      <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
-        <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography color="textSecondary" gutterBottom>
-              Total Submitted
-            </Typography>
-            <Typography variant="h4">{stats.submitted}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography color="textSecondary" gutterBottom>
-              Total Approved
-            </Typography>
-            <Typography variant="h4">{stats.approved}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography color="textSecondary" gutterBottom>
-              Total Amount
-            </Typography>
-            <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
-          </CardContent>
-        </Card>
-      </Box>
+        <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+          <Card sx={{ flex: 1 }}>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Total Submitted
+              </Typography>
+              <Typography variant="h4">{stats.submitted}</Typography>
+            </CardContent>
+          </Card>
+          <Card sx={{ flex: 1 }}>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Total Approved
+              </Typography>
+              <Typography variant="h4">{stats.approved}</Typography>
+            </CardContent>
+          </Card>
+          <Card sx={{ flex: 1 }}>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Total Amount
+              </Typography>
+              <Typography variant="h4">${stats.totalAmount.toLocaleString()}</Typography>
+            </CardContent>
+          </Card>
+        </Box>
 
-      <Box sx={{ mt: 4, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-        {filteredProjects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onView={() => setSelectedProject(project)}
+        <Box sx={{ mt: 4, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          {filteredProjects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onView={() => setSelectedProject(project)}
+              onAction={handleProjectAction}
+              isVerifier
+            />
+          ))}
+        </Box>
+
+        {selectedProject && (
+          <ProjectDetailsModal
+            project={selectedProject}
+            open={!!selectedProject}
+            onClose={() => setSelectedProject(null)}
             onAction={handleProjectAction}
             isVerifier
           />
-        ))}
-      </Box>
-
-      {selectedProject && (
-        <ProjectDetailsModal
-          project={selectedProject}
-          open={!!selectedProject}
-          onClose={() => setSelectedProject(null)}
-          onAction={handleProjectAction}
-          isVerifier
-        />
-      )}
-    </Box>
+        )}
+      </div>
+    </ProtectedRoute>
   );
 }

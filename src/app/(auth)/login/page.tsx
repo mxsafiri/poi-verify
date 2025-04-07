@@ -2,31 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { AuthForm } from '@/components/ui/auth-form';
-import { supabase } from '@/lib/supabase';
+import { mockAuth } from '@/lib/mock-auth';
 
 export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Check if user is a verifier
-      const { data: verifierData } = await supabase
-        .from('verifiers')
-        .select('is_verifier')
-        .eq('user_id', data.user.id)
-        .single();
-
+      const user = await mockAuth.login(email, password);
+      
       // Redirect based on role
-      if (verifierData?.is_verifier) {
+      if (user.role === 'verifier') {
         router.push('/verifier');
       } else {
         router.push('/dashboard');
