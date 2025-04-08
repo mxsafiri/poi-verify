@@ -31,7 +31,7 @@ export const mockAuth = {
     return new Promise((resolve) => {
       // Simulate API call delay
       setTimeout(() => {
-        const user = {
+        const user: MockUser = {
           id: 'mock-user-' + Math.random().toString(36).substr(2, 9),
           email,
           role: email.includes('verifier') ? 'verifier' : 'user'
