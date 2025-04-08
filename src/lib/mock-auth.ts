@@ -42,13 +42,13 @@ export const mockAuth = {
     });
   },
 
-  signup: (email: string, password: string, role: string): Promise<MockUser> => {
+  signup: (email: string, password: string, role: 'user' | 'verifier'): Promise<MockUser> => {
     return new Promise((resolve) => {
       setTimeout(() => {
         const user = {
           id: 'mock-user-' + Math.random().toString(36).substr(2, 9),
           email,
-          role: role as 'user' | 'verifier'
+          role
         };
         safeLocalStorage.setItem('mockUser', JSON.stringify(user));
         resolve(user);
